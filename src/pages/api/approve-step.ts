@@ -68,6 +68,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
+async function executeLLMResume(config: any, previousOutput: any): Promise<any> {
+  const prompt = config.prompt || 'Hello'
+  const apiKey = process.env.LLM_API_KEY || ''
+  const model = process.env.LLM_MODEL || 'llama-3.1-8b-instant'
+  if (apiKey && !apiKey.startsWith('your-')) {
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], max_tokens: 500 })
+      })
+      if (response.ok) {
+        const data = await response.json()
+        return { llmResponse: data.choices[0]?.message?.content || '', prompt, provider: 'groq', previousOutput }
+      }
+    } catch {}
+  }
+  return { llmResponse: `Simulated response for: "${prompt}" — AI is transforming industries worldwide.`, prompt, provider: 'simulated', previousOutput }
+}
+
+async function executeHTTPResume(config: any, previousOutput: any): Promise<any> {
+  try {
+    const resp = await fetch(config.url || 'https://jsonplaceholder.typicode.com/posts/1', {
+      method: config.method || 'GET',
+      headers: { 'Accept': 'application/json', ...(config.headers || {}) }
+    })
+    const text = await resp.text()
+    let data: any
+    try { data = JSON.parse(text) } catch { data = { rawResponse: text.substring(0, 500) } }
+    return { httpResponse: data, statusCode: resp.status, previousOutput }
+  } catch (error: any) {
+    return { httpResponse: { error: error.message }, statusCode: 0, previousOutput }
+  }
+}
+
 async function resumeWorkflow(runId: string, workflow: any, approvedStepId: string) {
   const steps = workflow.workflow_steps
   const idx = steps.findIndex((s: any) => s.id === approvedStepId)
@@ -89,7 +124,7 @@ async function resumeWorkflow(runId: string, workflow: any, approvedStepId: stri
     query($id: uuid!) {
       step_runs_by_pk(id: $id) { output }
     }
-  `, { id: stepRun.id })
+  `, { id: approvedStepId })
   let previousOutput: any = approvedStepRunData.step_runs_by_pk?.output || null
 
   for (const step of remaining) {
@@ -115,9 +150,9 @@ async function resumeWorkflow(runId: string, workflow: any, approvedStepId: stri
       let shouldContinue = true
 
       if (step.type === 'llm_call') {
-        output = { llmResponse: `Post-approval LLM response for: "${step.config.prompt || 'Hello'}" — AI is transforming industries worldwide.`, prompt: step.config.prompt, previousOutput }
+        output = await executeLLMResume(step.config, previousOutput)
       } else if (step.type === 'http_request') {
-        output = { httpResponse: { status: 'ok', message: 'Request completed' }, statusCode: 200, previousOutput }
+        output = await executeHTTPResume(step.config, previousOutput)
       } else if (step.type === 'approval_gate') {
         await adminClient.request(`
           mutation PauseStep($id: uuid!) {
