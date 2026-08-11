@@ -1,0 +1,29 @@
+version: 3
+tables:
+  - table:
+      name: organizations
+      schema: public
+  - table:
+      name: org_members
+      schema: public
+  - table:
+      name: workflows
+      schema: public
+  - table:
+      name: workflow_steps
+      schema: public
+  - table:
+      name: workflow_triggers
+      schema: public
+  - table:
+      name: workflow_runs
+      schema: public
+  - table:
+      name: step_runs
+      schema: public
+actions: []
+custom_types:
+  enums: []
+  input_objects: []
+  objects: []
+  scalars: []

@@ -1,0 +1,21 @@
+table:
+  schema: public
+  name: step_runs
+event_triggers:
+  - name: notify_on_completion
+    definition:
+      enable_manual: true
+      insert:
+        columns: "*"
+      update:
+        columns:
+          - status
+          - completed_at
+    retry_conf:
+      num_retries: 3
+      interval_sec: 10
+      timeout_sec: 60
+    webhook: http://localhost:3000/api/event-handler
+    headers:
+      - name: x-hasura-event-secret
+        value_from_env: HASURA_EVENT_SECRET

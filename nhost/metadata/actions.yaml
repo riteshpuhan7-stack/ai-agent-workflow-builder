@@ -1,0 +1,45 @@
+actions:
+  - name: triggerWorkflowRun
+    definition:
+      kind: synchronous
+      handler: http://localhost:3001/api/trigger-workflow-run
+      forward_client_headers: true
+      request_transform:
+        version: 2
+        template_engine: Kriti
+        body: "{{$body}}"
+        query_params: {}
+    permissions:
+      - role: owner
+      - role: editor
+    comment: "Trigger a workflow run"
+
+  - name: approveStep
+    definition:
+      kind: synchronous
+      handler: http://localhost:3001/api/approve-step
+      forward_client_headers: true
+      request_transform:
+        version: 2
+        template_engine: Kriti
+        body: "{{$body}}"
+        query_params: {}
+    permissions:
+      - role: owner
+      - role: editor
+    comment: "Approve a paused step"
+
+  - name: webhookTrigger
+    definition:
+      kind: synchronous
+      handler: http://localhost:3001/api/webhook-trigger
+      forward_client_headers: true
+      request_transform:
+        version: 2
+        template_engine: Kriti
+        body: "{{$body}}"
+        query_params: {}
+    permissions:
+      - role: owner
+      - role: editor
+    comment: "Webhook endpoint to trigger workflows"
